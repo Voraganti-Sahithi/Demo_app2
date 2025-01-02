@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demoApp2.dto.EmployeeDTO;
 import com.example.demoApp2.service.EmployeeService;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 @RestController
 @RequestMapping("/api2/employees")
 public class EmployeeController {
@@ -19,6 +21,7 @@ public class EmployeeController {
 
 	    // Using RestTemplate to fetch employee by ID
 	    @GetMapping("/restTemplate/{id}")
+	    @CircuitBreaker(name = "employeeService", fallbackMethod = "getEmployeeByIdFallback")
 	    public ResponseEntity<EmployeeDTO> getEmployeeByIdUsingRestTemplate(@PathVariable("id") Long id) {
 	        try {
 	            EmployeeDTO employeeDTO = employeeService.getEmployeeByIdUsingRestTemplate(id);
@@ -33,6 +36,7 @@ public class EmployeeController {
 
 	    // Using Feign Client to fetch employee by ID
 	    @GetMapping("/feign/{id}")
+	    @CircuitBreaker(name = "employeeService", fallbackMethod = "getEmployeeByIdFallback")
 	    public ResponseEntity<EmployeeDTO> getEmployeeByIdUsingFeign(@PathVariable("id") Long id) {
 	        try {
 	            EmployeeDTO employeeDTO = employeeService.getEmployeeByIdUsingFeign(id);
@@ -43,5 +47,13 @@ public class EmployeeController {
 	        } catch (Exception e) {
 	            return new ResponseEntity<>(HttpStatus.CONFLICT);
 	        }
+	    }
+	    
+	    public ResponseEntity<EmployeeDTO> getEmployeeByIdFallback(Long id, Throwable throwable) {
+	        EmployeeDTO fallbackEmployee = new EmployeeDTO();
+	        fallbackEmployee.setId(id);
+	        fallbackEmployee.setName("Fallback Employee");
+	        fallbackEmployee.setAge(20);
+	        return new ResponseEntity<>(fallbackEmployee, HttpStatus.SERVICE_UNAVAILABLE);
 	    }
 }

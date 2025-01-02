@@ -1,7 +1,11 @@
+
 plugins {
 	id 'java'
+	id 'scala'
 	id 'org.springframework.boot' version '3.4.0'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'io.gatling.gradle' version '3.13.1'
+	id 'org.openapi.generator' version '6.3.0'
 }
 
 group = 'com.example'
@@ -18,7 +22,6 @@ configurations {
 		extendsFrom annotationProcessor
 	}
 }
-
 repositories {
 	mavenCentral()
 	maven { url 'https://repo.spring.io/milestone' }
@@ -29,31 +32,84 @@ ext {
 }
 
 dependencies {
-implementation 'org.springframework.boot:spring-boot-starter'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	implementation 'org.mapstruct:mapstruct:1.5.3.Final'
+ // Spring Boot Dependencies
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.mapstruct:mapstruct:1.5.3.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'com.h2database:h2'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.cloud:spring-cloud-config-server'
     
+    // Circuit Breaker
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.0.2'
+
+    // Gatling Dependencies
+    implementation 'io.gatling:gatling-core:3.13.1'   // Core Gatling library
+    implementation 'io.gatling:gatling-http:3.13.1'   // HTTP module for Gatling
+    implementation 'io.gatling.highcharts:gatling-charts-highcharts:3.13.1'  // Highcharts for Gatling results
+    implementation 'org.scala-lang:scala-library:2.13.15'  // Scala 2.13.x library
+    testImplementation 'org.scala-js:scalajs-test-bridge_2.13:1.17.0'
+    implementation 'com.typesafe:config:1.3.1'
+    
+    //OpenAI
+  	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+    implementation 'org.springdoc:springdoc-openapi-ui:2.3.0'
+    
+    // Jackson dependencies
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    
+    
+    // Pact consumer dependencies
+    //testImplementation 'au.com.dius.pact.consumer:junit5:4.1.13'
+    //testImplementation 'au.com.dius.pact.consumer:pact-java8:4.1.13'
+    //testImplementation 'au.com.dius.pact.consumer:junit5:4.1.29' 
+    //testImplementation 'au.com.dius.pact.consumer:pact-java8:4.5.0'
+    //testImplementation 'au.com.dius.pact.consumer:consumer:4.5.0'
+    testImplementation 'au.com.dius.pact.consumer:junit5:4.5.8'
+
+    // JUnit 5
+    //testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+   
+}
+
+task generateOpenApiCode(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    group = "build"
+    description = "Generates Java code from OpenAPI specification"
+    //dependsOn build  // Make sure this task runs after the build
+    generatorName = "spring"  // Specify 'spring' for Spring Boot code generation
+    inputSpec = "$rootDir/api-docs.yaml"  // Path to your OpenAPI YAML file
+    outputDir = "$buildDir/generated"  // Directory to output generated files
+    apiPackage = "com.example.demoApp2.api"  // API package name
+    modelPackage = "com.example.demoApp2.model"  // Model package name
+    configOptions = [
+        sourceFolder: "swagger",  // Folder for sources
+        java8: "true",  // Java 8 compatibility
+        interfaceOnly: "false",  // Generate only interfaces, not implementation
+        useBeanValidation: "true"  // Enable Bean Validation annotations
+    ]
+    validateSpec = false 
 }
 
 dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-		//mavenBom "org.springframework.cloud:spring-cloud-dependencies:Hoxton.SR12"
 	}
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.withType(JavaCompile) {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
